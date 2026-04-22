@@ -241,6 +241,8 @@ class MessageOrchestrator:
             "project_slug": project.slug,
             "project_root": str(project_root),
             "project_name": project.name,
+            "project_cli": project.cli,
+            "project_model": project.model,
         }
         return True
 
@@ -1006,6 +1008,7 @@ class MessageOrchestrator:
 
         success = True
         try:
+            _thread_ctx = context.user_data.get("_thread_context", {})
             claude_response = await claude_integration.run_command(
                 prompt=message_text,
                 working_directory=current_dir,
@@ -1014,6 +1017,8 @@ class MessageOrchestrator:
                 on_stream=on_stream,
                 force_new=force_new,
                 interrupt_event=interrupt_event,
+                cli=_thread_ctx.get("project_cli", "claude"),
+                model=_thread_ctx.get("project_model"),
             )
 
             # New session created successfully — clear the one-shot flag
@@ -1257,6 +1262,7 @@ class MessageOrchestrator:
 
         heartbeat = self._start_typing_heartbeat(chat)
         try:
+            _thread_ctx = context.user_data.get("_thread_context", {})
             claude_response = await claude_integration.run_command(
                 prompt=prompt,
                 working_directory=current_dir,
@@ -1264,6 +1270,8 @@ class MessageOrchestrator:
                 session_id=session_id,
                 on_stream=on_stream,
                 force_new=force_new,
+                cli=_thread_ctx.get("project_cli", "claude"),
+                model=_thread_ctx.get("project_model"),
             )
 
             if force_new:
@@ -1466,6 +1474,7 @@ class MessageOrchestrator:
 
         heartbeat = self._start_typing_heartbeat(chat)
         try:
+            _thread_ctx = context.user_data.get("_thread_context", {})
             claude_response = await claude_integration.run_command(
                 prompt=prompt,
                 working_directory=current_dir,
@@ -1474,6 +1483,8 @@ class MessageOrchestrator:
                 on_stream=on_stream,
                 force_new=force_new,
                 images=images,
+                cli=_thread_ctx.get("project_cli", "claude"),
+                model=_thread_ctx.get("project_model"),
             )
         finally:
             heartbeat.cancel()

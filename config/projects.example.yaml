@@ -3,8 +3,12 @@ projects:
     name: Claude Code Telegram
     path: claude-code-telegram-main
     enabled: true
+    # cli: claude      # default — uses claude-agent-sdk
+    # model: claude-opus-4-7  # optional: override global CLAUDE_MODEL
 
-  - slug: infra
-    name: Infrastructure
-    path: infrastructure
+  - slug: gemini-project
+    name: Gemini Project
+    path: gemini-project
     enabled: true
+    cli: gemini
+    model: gemini-2.5-pro  # required when cli: gemini

@@ -754,6 +754,8 @@ async def test_thread_mode_loads_and_persists_thread_state(group_thread_settings
         slug="project_a",
         name="Project A",
         absolute_path=project_path,
+        cli="claude",
+        model=None,
     )
 
     project_threads_manager = MagicMock()
@@ -862,6 +864,8 @@ async def test_private_mode_start_inside_topic_uses_thread_context(
         slug="project_a",
         name="Project A",
         absolute_path=project_path,
+        cli="claude",
+        model=None,
     )
     project_threads_manager = MagicMock()
     project_threads_manager.resolve_project = AsyncMock(return_value=project)

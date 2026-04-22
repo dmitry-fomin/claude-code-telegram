@@ -147,3 +147,8 @@ sessions/
 backups/
 uploads/
 config/mcp.json
+config/projects.yaml
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key

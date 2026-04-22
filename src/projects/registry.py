@@ -16,6 +16,8 @@ class ProjectDefinition:
     relative_path: Path
     absolute_path: Path
     enabled: bool = True
+    cli: str = "claude"
+    model: Optional[str] = None
 
 
 class ProjectRegistry:
@@ -70,6 +72,13 @@ def load_project_registry(
         name = str(raw.get("name", "")).strip()
         rel_path_raw = str(raw.get("path", "")).strip()
         enabled = bool(raw.get("enabled", True))
+        cli = str(raw.get("cli", "claude")).strip().lower()
+        model: Optional[str] = raw.get("model") or None
+
+        if cli not in ("claude", "gemini"):
+            raise ValueError(
+                f"Project '{slug}': cli must be 'claude' or 'gemini', got '{cli}'"
+            )
 
         if not slug:
             raise ValueError(f"Project entry at index {idx} is missing 'slug'")
@@ -116,6 +125,8 @@ def load_project_registry(
                 relative_path=rel_path,
                 absolute_path=absolute_path,
                 enabled=enabled,
+                cli=cli,
+                model=model,
             )
         )
 

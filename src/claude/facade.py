@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional
 import structlog
 
 from ..config.settings import Settings
+from .gemini_manager import GeminiManager
 from .sdk_integration import ClaudeResponse, ClaudeSDKManager, StreamUpdate
 from .session import SessionManager
 
@@ -40,16 +41,35 @@ class ClaudeIntegration:
         force_new: bool = False,
         interrupt_event: Optional["asyncio.Event"] = None,
         images: Optional[List[Dict[str, str]]] = None,
+        cli: str = "claude",
+        model: Optional[str] = None,
     ) -> ClaudeResponse:
-        """Run Claude Code command with full integration."""
+        """Run LLM command with full integration.
+
+        Routes to GeminiManager when cli='gemini', otherwise uses claude-agent-sdk.
+        """
         logger.info(
-            "Running Claude command",
+            "Running LLM command",
             user_id=user_id,
             working_directory=str(working_directory),
             session_id=session_id,
             prompt_length=len(prompt),
             force_new=force_new,
+            cli=cli,
+            model=model,
         )
+
+        if cli == "gemini":
+            gemini = GeminiManager(self.config, model=model)
+            gemini_session = None if force_new else session_id
+            return await gemini.execute(
+                prompt=prompt,
+                working_directory=working_directory,
+                session_id=gemini_session,
+                stream_callback=on_stream,
+                interrupt_event=interrupt_event,
+                images=images,
+            )
 
         # If no session_id provided, try to find an existing session for this
         # user+directory combination (auto-resume).
@@ -90,6 +110,7 @@ class ClaudeIntegration:
                     stream_callback=on_stream,
                     interrupt_event=interrupt_event,
                     images=images,
+                    model_override=model,
                 )
             except Exception as resume_error:
                 # If resume failed (e.g., session expired/missing on Claude's side),
@@ -116,6 +137,7 @@ class ClaudeIntegration:
                         stream_callback=on_stream,
                         interrupt_event=interrupt_event,
                         images=images,
+                        model_override=model,
                     )
                 else:
                     raise
@@ -161,8 +183,9 @@ class ClaudeIntegration:
         stream_callback: Optional[Callable] = None,
         interrupt_event: Optional[asyncio.Event] = None,
         images: Optional[List[Dict[str, str]]] = None,
+        model_override: Optional[str] = None,
     ) -> ClaudeResponse:
-        """Execute command via SDK."""
+        """Execute command via Claude SDK."""
         return await self.sdk_manager.execute_command(
             prompt=prompt,
             working_directory=working_directory,
@@ -171,6 +194,7 @@ class ClaudeIntegration:
             stream_callback=stream_callback,
             interrupt_event=interrupt_event,
             images=images,
+            model_override=model_override,
         )
 
     async def _find_resumable_session(

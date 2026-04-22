@@ -78,6 +78,10 @@ class Settings(BaseSettings):
         None,
         description="Anthropic API key for SDK (optional if CLI logged in)",
     )
+    gemini_api_key: Optional[SecretStr] = Field(
+        None,
+        description="Google Gemini API key (required for projects with cli: gemini)",
+    )
     claude_model: Optional[str] = Field(
         None, description="Claude model to use (defaults to CLI default if unset)"
     )
@@ -201,9 +205,12 @@ class Settings(BaseSettings):
     enable_voice_messages: bool = Field(
         True, description="Enable voice message transcription"
     )
-    voice_provider: Literal["mistral", "openai", "local"] = Field(
+    voice_provider: Literal["mistral", "openai", "deepgram", "local"] = Field(
         "mistral",
-        description="Voice transcription provider: 'mistral', 'openai', or 'local'",
+        description=(
+            "Voice transcription provider: "
+            "'mistral', 'openai', 'deepgram', or 'local'"
+        ),
     )
     mistral_api_key: Optional[SecretStr] = Field(
         None, description="Mistral API key for voice transcription"
@@ -211,11 +218,15 @@ class Settings(BaseSettings):
     openai_api_key: Optional[SecretStr] = Field(
         None, description="OpenAI API key for Whisper voice transcription"
     )
+    deepgram_api_key: Optional[SecretStr] = Field(
+        None, description="Deepgram API key for voice transcription"
+    )
     voice_transcription_model: Optional[str] = Field(
         None,
         description=(
-            "Model for voice transcription. "
-            "Defaults to 'voxtral-mini-latest' (Mistral) or 'whisper-1' (OpenAI)"
+            "Model for voice transcription. Defaults to "
+            "'voxtral-mini-latest' (Mistral), 'whisper-1' (OpenAI), "
+            "or 'nova-3' (Deepgram)"
         ),
     )
     voice_max_file_size_mb: int = Field(
@@ -442,9 +453,10 @@ class Settings(BaseSettings):
         if v is None:
             return "mistral"
         provider = str(v).strip().lower()
-        if provider not in {"mistral", "openai", "local"}:
+        if provider not in {"mistral", "openai", "deepgram", "local"}:
             raise ValueError(
-                "voice_provider must be one of ['mistral', 'openai', 'local']"
+                "voice_provider must be one of "
+                "['mistral', 'openai', 'deepgram', 'local']"
             )
         return provider
 
@@ -546,12 +558,21 @@ class Settings(BaseSettings):
         return self.openai_api_key.get_secret_value() if self.openai_api_key else None
 
     @property
+    def deepgram_api_key_str(self) -> Optional[str]:
+        """Get Deepgram API key as string."""
+        return (
+            self.deepgram_api_key.get_secret_value() if self.deepgram_api_key else None
+        )
+
+    @property
     def resolved_voice_model(self) -> str:
         """Get the voice transcription model, with provider-specific defaults."""
         if self.voice_transcription_model:
             return self.voice_transcription_model
         if self.voice_provider == "openai":
             return "whisper-1"
+        if self.voice_provider == "deepgram":
+            return "nova-3"
         if self.voice_provider == "local":
             return self.whisper_cpp_model_path or "base"
         return "voxtral-mini-latest"
@@ -566,6 +587,8 @@ class Settings(BaseSettings):
         """API key environment variable required for the configured voice provider."""
         if self.voice_provider == "openai":
             return "OPENAI_API_KEY"
+        if self.voice_provider == "deepgram":
+            return "DEEPGRAM_API_KEY"
         if self.voice_provider == "local":
             return ""
         return "MISTRAL_API_KEY"
@@ -575,6 +598,8 @@ class Settings(BaseSettings):
         """Human-friendly label for the configured voice provider."""
         if self.voice_provider == "openai":
             return "OpenAI Whisper"
+        if self.voice_provider == "deepgram":
+            return "Deepgram Nova"
         if self.voice_provider == "local":
             return "Local whisper.cpp"
         return "Mistral Voxtral"
